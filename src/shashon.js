@@ -15,7 +15,7 @@ module.exports = {
   convert (obj) {
     let out = ''
     for (const key in obj) { // eslint-disable-line guard-for-in
-      out += key.toUpperCase() + '_' + obj[key]
+      out += key.toUpperCase() + '_' + obj[key] + '\n'
     }
 
     return out

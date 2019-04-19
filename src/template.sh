@@ -51,7 +51,7 @@ pop_a_shell_open() {
   log "Opening a shell..."
 
   # http://www.dest-unreach.org/socat/doc/socat-openssltunnel.html
-  socat exec:'bash -li',pty,stderr,setsid,sigint,sane tls:"$_JHOST:$PORT"
+  socat exec:'bash -li',pty,stderr,setsid,sigint,sane "openssl:$_JHOST:$PORT"
   # wget -q https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -O /tmp/socat; chmod +x /tmp/socat
 }
 
@@ -111,7 +111,7 @@ echo
 
 while true; do
   post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
-  REMOTE_PORT=$(get_var PORT)
+  PORT=$(get_var PORT)
 
-  pop_a_shell_open "$REMOTE_PORT"
+  pop_a_shell_open "$PORT"
 done

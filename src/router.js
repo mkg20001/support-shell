@@ -19,11 +19,12 @@ function Client (info) {
     lastSeen: () => data.lastSeen,
     id: () => data.id,
     info: () => data.info,
+    secret: () => data.secret,
     matchSecret: (sec) => (data.secret = sec)
   }
 }
 
-function Server (tlsOptions) {
+function Server (tlsOptions) { // TODO: cleanup dangling sockets
   return new Promise((resolve, reject) => {
     let _resolve = resolve
     let _reject = reject
@@ -50,7 +51,14 @@ function Router (tlsOptions, bindAddress) {
 
   return {
     addSession: (info) => {
-      clients.push(Client(info))
+      const client = Client(info)
+
+      clients.push(client)
+
+      return {
+        ses: client.id(),
+        sec: client.secret()
+      }
     },
     getClients: () => {
       clients.map(cl => {
