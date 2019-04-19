@@ -22,8 +22,8 @@ module.exports = (init) => {
       bindAddress: '::'
     },
     tls: {
-      cert: ''
-
+      cert: '',
+      key: ''
     }
   }
 

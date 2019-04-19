@@ -29,5 +29,13 @@
   "bugs": {
     "url": "https://github.com/mkg20001/support-shell/issues"
   },
-  "homepage": "https://github.com/mkg20001/support-shell#readme"
+  "homepage": "https://github.com/mkg20001/support-shell#readme",
+  "dependencies": {
+    "hapi": "^18.1.0",
+    "joi": "^14.3.1",
+    "js-yaml": "^3.13.1",
+    "pino": "^5.12.2",
+    "relish": "^3.0.0",
+    "ssl-config": "^1.0.0"
+  }
 }

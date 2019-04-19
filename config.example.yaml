@@ -1,0 +1,11 @@
+hapi:
+  port: 5337
+  host: '::'
+routing:
+  externalHost: localhost.mkg20001.io
+  externalPort: 443
+  bindAddress: '::'
+tls:
+  cert: './path-to-your.cert'
+  key: './path-to-your.key'
+
