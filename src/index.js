@@ -13,10 +13,20 @@ const Relish = require('relish')({
 const Router = require('./router')
 const shashon = require('./shashon')
 
-// getSessionID = AJ's rando prounauncible id mod
-
 const fs = require('fs')
 const path = require('path')
+
+const sslConfig = require('ssl-config')('modern')
+const generateTLSOptions = ({tls: {cert, key}}) => {
+  return {
+    key: fs.readFileSync(key),
+    cert: fs.readFileSync(cert),
+    // ca: certificateAuthority,
+    ciphers: sslConfig.ciphers,
+    honorCipherOrder: true,
+    secureOptions: sslConfig.minimumTLSVersion
+  }
+}
 
 const init = async (config) => {
   const template = String(fs.readFileSync(path.join(__dirname, 'template.sh')))
