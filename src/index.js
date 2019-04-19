@@ -29,15 +29,17 @@ const generateTLSOptions = ({tls: {cert, key}}) => {
 }
 
 const init = async (config) => {
-  const template = String(fs.readFileSync(path.join(__dirname, 'template.sh')))
+  const template = String(fs.readFileSync(path.join(__dirname, 'template.sh'))).replace(/\$_HOST/g, config.router.externalHost).replace(/\$_JHOST/g, config.router.externalHost.split(':')[0])
+  const tlsOptions = generateTLSOptions(config)
 
   config.hapi.routes = {
     validate: {
       failAction: Relish.failAction
     }
   }
+  config.hapi.tls = tlsOptions
 
-  const router = Router(generateTLSOptions(config), config.router.bindAddress)
+  const router = Router(tlsOptions, config.router.bindAddress)
 
   const server = Hapi.server(config.hapi)
 
@@ -62,7 +64,7 @@ const init = async (config) => {
     path: '/',
     config: {
       handler: async (request, h) => {
-        return template.replace(/\$_HOST/g, config.router.externalHost)
+        return template
       }
     }
   })

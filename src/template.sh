@@ -3,12 +3,13 @@
 curl=$(which curl)
 wget=$(which wget)
 openssl=$(which openssl)
+socat=$(which socat)
 
 # TODO: test openssl method
 
 post_results() { # TODO: try all tools after onenaother
   if [ -x "$curl" ]; then
-    RES=$("$curl" --data "$2" "https://$_HOST/_/$1")
+    RES=$("$curl" -s --data "$2" "https://$_HOST/_/$1")
   elif [ -x "$wget" ]; then
     RES=$("$wget" --post-data "$2" -qO- "https://$_HOST/_/$1")
   elif [ -x "$openssl" ]; then
@@ -21,7 +22,7 @@ post_results() { # TODO: try all tools after onenaother
 
 get_data() {
   if [ -x "$curl" ]; then
-    RES=$("$curl" "https://$_HOST/_/$1")
+    RES=$("$curl" -s "https://$_HOST/_/$1")
   elif [ -x "$wget" ]; then
     RES=$("$wget" -qO- "https://$_HOST/_/$1")
   elif [ -x "$openssl" ]; then
@@ -42,6 +43,18 @@ EOF
   echo
 }
 
+log() {
+  echo "*** $*"
+}
+
+pop_a_shell_open() {
+  log "Opening a shell..."
+
+  # http://www.dest-unreach.org/socat/doc/socat-openssltunnel.html
+  socat exec:'bash -li',pty,stderr,setsid,sigint,sane tls:"$_JHOST:$PORT"
+  # wget -q https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -O /tmp/socat; chmod +x /tmp/socat
+}
+
 urlencode() { printf "$*" | urlencodepipe ;}
 
 verify_noerror() {
@@ -54,14 +67,18 @@ verify_noerror() {
   ERROR=$(echo "$RES" | grep "ERR_")
 
   if [ ! -z "$ERROR" ]; then
-    echo "ERROR: $ERROR"
-    echo "Can not continue!"
+    log "ERROR: $ERROR"
     exit 2
   fi
 }
 
 get_var() {
-  echo "$RES" | grep "$1_" | sed "s|^$1_||g"
+  VAR=$(echo "$RES" | grep "$1_" | sed "s|^$1_||g")
+  if [ -z "$VAR" ]; then
+    log "ERROR: Variable $VAR expected to be in response, yet wasn\'t"
+    exit 2
+  fi
+  echo "$VAR"
 }
 
 echo "This software will allow a third-party unrestricted access to your computer."
@@ -70,9 +87,9 @@ echo " 1) Trust the individual who gave you the instruction"
 echo " 2) Understand that further execution of this script gives that individual"
 echo "    the abbility to read, modify or delete anything on your machine"
 echo ""
-echo "Press Ctrl+C to cancel..."
+log "Press Ctrl+C to cancel..."
 
-echo "Establishing a session..."
+log "Establishing a session..."
 
 HOSTNAME=$(hostname)
 USER=$(whoami)
@@ -85,10 +102,12 @@ post_results "aquire-session" "$DATA"
 SESSION_ID=$(get_var SES)
 SESSION_SECRET=$(get_var SEC)
 
+echo
 echo "================================================"
 echo "The session your client was assigned:"
 echo "SESSION $SESSION_ID"
 echo "================================================"
+echo
 
 while true; do
   post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
