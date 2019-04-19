@@ -2,7 +2,17 @@
   "name": "support-shell",
   "version": "0.0.1",
   "description": "Reverse-Shell QuickSupport-style",
-  "main": "bin.js",
+  "main": "src/index.js",
+  "bin": {
+    "sup-shell-server": "./bin.js",
+    "sup-shell-client": "./client/index.sh"
+  },
+  "files": [
+    "bin.js",
+    "src/**/*.js",
+    "src/**/*.sh",
+    "client/**/*.sh"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
