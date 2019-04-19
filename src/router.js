@@ -18,11 +18,12 @@ function Client (info) {
     seen: () => (data.lastSeen = Date.now()),
     lastSeen: () => data.lastSeen,
     id: () => data.id,
-    info: () => data.info
+    info: () => data.info,
+    matchSecret: (sec) => (data.secret = sec)
   }
 }
 
-function Server (tlsOptions, client) {
+function Server (tlsOptions) {
   return new Promise((resolve, reject) => {
     let _resolve = resolve
     let _reject = reject
@@ -45,7 +46,7 @@ function Server (tlsOptions, client) {
 function Router (tlsOptions, bindAddress) {
   let clients = []
 
-  setInterval()
+  // setInterval() // TODO: toss out dead clients every minute (check if sock open otherwise lastseen less than 1h)
 
   return {
     addSession: (info) => {
@@ -55,6 +56,18 @@ function Router (tlsOptions, bindAddress) {
       clients.map(cl => {
         return {id: cl.id(), info: cl.info(), lastSeen: cl.lastSeen()}
       })
+    },
+    aquirePort: async (secret) => {
+      const client = clients.filter(cl => cl.matchSecret(secret))[0]
+
+      if (!client) {
+        return {err: 'INVALID_SECRET'}
+      }
+
+      const {port, socket} = await Server(tlsOptions, bindAddress)
+      client.socket = socket
+
+      return {port}
     }
 
   }

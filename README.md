@@ -1,6 +1,6 @@
 # support-shell
 
-Reverse-Shell QuickSupport
+Reverse-Shell QuickSupport-style
 
 ## Why?
 
