@@ -10,6 +10,9 @@ const Relish = require('relish')({
   messages: {}
 })
 
+const Router = require('./router')
+const shashon = require('./shashon')
+
 // getSessionID = AJ's rando prounauncible id mod
 
 const fs = require('fs')
@@ -23,6 +26,8 @@ const init = async (config) => {
       failAction: Relish.failAction
     }
   }
+
+  const router = Router(generateTLSOptions(config), config.router.bindAddress)
 
   const server = Hapi.server(config.hapi)
 
@@ -65,9 +70,26 @@ const init = async (config) => {
       },
       handler: async (request, h) => {
         try {
-          const id = getSessionID()
-          await router.addSession(id, request.payload)
-          return 'SES_' + id
+          return shashon.convert(router.addSession(request.payload))
+        } catch (e) {
+          return 'ERR_INTERNAL'
+        }
+      }
+    }
+  })
+
+  server.route({
+    method: 'GET',
+    path: '/_/aquire-port',
+    config: {
+      validate: {
+        payload: {
+          secret: Joi.string().required()
+        }
+      },
+      handler: async (request, h) => {
+        try {
+          return shashon.convert(await router.aquirePort(request.payload.secret))
         } catch (e) {
           return 'ERR_INTERNAL'
         }

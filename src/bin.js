@@ -19,11 +19,11 @@ module.exports = (init) => {
     routing: {
       externalHost: 'localhost.mkg20001.io',
       externalPort: 443,
-      bindHost: '::'
+      bindAddress: '::'
     },
     tls: {
-      cert: '',
-      
+      cert: ''
+
     }
   }
 
