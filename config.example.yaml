@@ -1,7 +1,7 @@
 hapi:
   port: 5337
   host: '::'
-routing:
+router:
   externalHost: localhost.mkg20001.io
   externalPort: 443
   bindAddress: '::'

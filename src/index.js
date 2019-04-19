@@ -68,7 +68,7 @@ const init = async (config) => {
   })
 
   server.route({
-    method: 'GET',
+    method: 'POST',
     path: '/_/aquire-session',
     config: {
       validate: {
@@ -89,7 +89,7 @@ const init = async (config) => {
   })
 
   server.route({
-    method: 'GET',
+    method: 'POST',
     path: '/_/aquire-port',
     config: {
       validate: {
@@ -111,7 +111,7 @@ const init = async (config) => {
     method: 'GET',
     path: '/_/clients',
     config: {
-      auth: {}, // TODO: add
+      // auth: {}, // TODO: add
       handler: async (request, h) => {
         return router.getClients()
       }
