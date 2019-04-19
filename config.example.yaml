@@ -2,10 +2,9 @@ hapi:
   port: 5337
   host: '::'
 router:
-  externalHost: localhost.mkg20001.io
+  externalHost: 'localhost.mkg20001.io:443'
   externalPort: 443
   bindAddress: '::'
 tls:
   cert: './path-to-your.cert'
   key: './path-to-your.key'
-

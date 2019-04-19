@@ -6,24 +6,30 @@ openssl=$(which openssl)
 
 # TODO: test openssl method
 
-post_results() {
+post_results() { # TODO: try all tools after onenaother
   if [ -x "$curl" ]; then
-    "$curl" --data "$2" "https://$HOST/_/$1"
+    RES=$("$curl" --data "$2" "https://$_HOST/_/$1")
   elif [ -x "$wget" ]; then
-    "$wget" --post-data "$2" -qO- "https://$HOST/_/$1"
+    RES=$("$wget" --post-data "$2" -qO- "https://$_HOST/_/$1")
   elif [ -x "$openssl" ]; then
-    echo -e "User-Agent: openssl-simple\r\nPOST /_/$1 HTTP/1.1\r\n$2\r\n" | openssl s_client -connect "$HOST:443"
+    RES=$(echo -e "User-Agent: openssl-simple\r\nPOST /_/$1 HTTP/1.1\r\n$2\r\n" | openssl s_client -connect "$_HOST")
+  else
+    RES="ERR_NO_TOOL_FOUND"
   fi
+  verify_noerror
 }
 
 get_data() {
   if [ -x "$curl" ]; then
-    "$curl" "https://$HOST/_/$1"
+    RES=$("$curl" "https://$_HOST/_/$1")
   elif [ -x "$wget" ]; then
-    "$wget" -qO- "https://$HOST/_/$1"
+    RES=$("$wget" -qO- "https://$_HOST/_/$1")
   elif [ -x "$openssl" ]; then
-    echo -e "User-Agent: openssl-simple\r\GET /_/$1 HTTP/1.1\r\n" | openssl s_client -connect "$HOST:443"
+    RES=$(echo -e "User-Agent: openssl-simple\r\GET /_/$1 HTTP/1.1\r\n" | openssl s_client -connect "$_HOST")
+  else
+    RES="ERR_NO_TOOL_FOUND"
   fi
+  verify_noerror
 }
 
 urlencodepipe() {
@@ -39,6 +45,12 @@ EOF
 urlencode() { printf "$*" | urlencodepipe ;}
 
 verify_noerror() {
+  ex=$?
+
+  if [ "$ex" -ne 0 ]; then
+    RES="ERR_TOOL_$ex"
+  fi
+
   ERROR=$(echo "$RES" | grep "ERR_")
 
   if [ ! -z "$ERROR" ]; then
@@ -58,9 +70,7 @@ echo " 1) Trust the individual who gave you the instruction"
 echo " 2) Understand that further execution of this script gives that individual"
 echo "    the abbility to read, modify or delete anything on your machine"
 echo ""
-echo "Press enter to continue, Ctrl+C to cancel..."
-
-read FOO
+echo "Press Ctrl+C to cancel..."
 
 echo "Establishing a session..."
 
@@ -68,11 +78,10 @@ HOSTNAME=$(hostname)
 USER=$(whoami)
 KERNEL=$(uname -a)
 
-DATA="hostname=$(echo "$HOSTNAME" | urlencode)&user=$(echo "$USER" | urlencode)&kernel=$(echo "$KERNEL" | urlencode)"
+DATA="hostname=$(echo "$HOSTNAME" | urlencodepipe)&user=$(echo "$USER" | urlencodepipe)&kernel=$(echo "$KERNEL" | urlencodepipe)"
 
-RES=$(post_results "aquire-session" "$DATA")
+post_results "aquire-session" "$DATA"
 
-verify_noerror
 SESSION_ID=$(get_var SES)
 SESSION_SECRET=$(get_var SEC)
 
@@ -82,8 +91,7 @@ echo "SESSION $SESSION_ID"
 echo "================================================"
 
 while true; do
-  RES=$(post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencode)")
-  verify_noerror
+  post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
   REMOTE_PORT=$(get_var PORT)
 
   pop_a_shell_open "$REMOTE_PORT"

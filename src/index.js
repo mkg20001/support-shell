@@ -62,7 +62,7 @@ const init = async (config) => {
     path: '/',
     config: {
       handler: async (request, h) => {
-        return template.replace(/\$HOST/, config.router.externalHost)
+        return template.replace(/\$_HOST/g, config.router.externalHost)
       }
     }
   })
