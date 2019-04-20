@@ -48,8 +48,6 @@ log() {
 }
 
 pop_a_shell_open() {
-  log "Opening a shell..."
-
   # http://www.dest-unreach.org/socat/doc/socat-openssltunnel.html
   socat exec:'bash -li',pty,stderr,setsid,sigint,sane "openssl:$_JHOST:$PORT"
   # wget -q https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -O /tmp/socat; chmod +x /tmp/socat
@@ -110,8 +108,14 @@ echo "================================================"
 echo
 
 while true; do
+  log "Communicating with server..."
   post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
   PORT=$(get_var PORT)
 
+  log "Opening a shell and waiting until it closes..."
   pop_a_shell_open "$PORT"
+  
+  log "Shell ended. Re-opening..."
+  log "(to close simply kill this process, close the terminal window,"
+  log "or fully reboot the machine if you're really paranoid)"
 done

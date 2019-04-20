@@ -9,23 +9,14 @@ module.exports = (init) => {
   const fs = require('fs')
   const path = require('path')
 
-  const confPath = [path.join(process.cwd(), 'config.yaml'), '/etc/lgs/config.yaml'].filter(p => fs.existsSync(p))[0]
+  const confPath = [path.join(process.cwd(), 'config.yaml'), '/etc/support-shell/config.yaml'].filter(p => fs.existsSync(p))[0]
 
-  const config = confPath ? yaml.load(String(fs.readFileSync(confPath))) : {
-    hapi: {
-      port: 5357,
-      host: '::'
-    },
-    routing: {
-      externalHost: 'localhost.mkg20001.io',
-      externalPort: 443,
-      bindAddress: '::'
-    },
-    tls: {
-      cert: '',
-      key: ''
-    }
+  if (!confPath) {
+    console.error('Please copy config.example.yaml into config.yaml, edit it and then run this script with the config path as first argument')
+    process.exit(2)
   }
+
+  const config = yaml.load(String(fs.readFileSync(confPath)))
 
   init(config).catch(e => {
     console.error('')
