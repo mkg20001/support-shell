@@ -28,6 +28,14 @@ const generateTLSOptions = ({tls: {cert, key}}) => {
   }
 }
 
+const getRealIP = (request) => {
+  return request.headers['x-real-ip'] ||
+    request.headers['x-forwarded-for'] ||
+    request.connection.remoteAddress ||
+    request.socket.remoteAddress ||
+    request.connection.socket.remoteAddress
+}
+
 const init = async (config) => {
   const template = String(fs.readFileSync(path.join(__dirname, 'template.sh'))).replace(/\$_HOST/g, config.router.externalHost).replace(/\$_JHOST/g, config.router.externalHost.split(':')[0])
   const tlsOptions = generateTLSOptions(config)
@@ -64,7 +72,7 @@ const init = async (config) => {
     path: '/',
     config: {
       handler: async (request, h) => {
-        return template
+        return h.response(template).type('content-type', 'text/x-shellscript')
       }
     }
   })
@@ -82,6 +90,7 @@ const init = async (config) => {
       },
       handler: async (request, h) => {
         try {
+          request.payload.ip = getRealIP(request)
           return shashon.convert(router.addSession(request.payload))
         } catch (e) {
           return 'ERR_INTERNAL'

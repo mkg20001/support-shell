@@ -1,9 +1,44 @@
 #!/bin/sh
 
+#                                   _            _          _ _
+#  ___ _   _ _ __  _ __   ___  _ __| |_      ___| |__   ___| | |
+# / __| | | | '_ \| '_ \ / _ \| '__| __|____/ __| '_ \ / _ \ | |
+# \__ \ |_| | |_) | |_) | (_) | |  | ||_____\__ \ | | |  __/ | |
+# |___/\__,_| .__/| .__/ \___/|_|   \__|    |___/_| |_|\___|_|_|
+#           |_|   |_|
+#
+# This is https://github.com/mkg20001/support-shell
+# A reverse-shell for quicksupport-style support
+#
+# To connect to it run
+# $ curl https://$_HOST | sh -
+#
+
+
+
+
+
+
+
+
+
+
+
+
+## ** paths **
+
 curl=$(which curl)
 wget=$(which wget)
 openssl=$(which openssl)
 socat=$(which socat)
+
+## ** basic **
+
+log() {
+  echo "*** $*"
+}
+
+## ** http-functions **
 
 # TODO: test openssl method
 
@@ -33,28 +68,6 @@ get_data() {
   verify_noerror
 }
 
-urlencodepipe() {
-  while IFS= read -r c; do
-    case $c in [a-zA-Z0-9.~_-]) printf "$c"; continue ;; esac
-    printf "$c" | od -An -tx1 | tr ' ' % | tr -d '\n'
-  done <<EOF
-$(fold -w1)
-EOF
-  echo
-}
-
-log() {
-  echo "*** $*"
-}
-
-pop_a_shell_open() {
-  # http://www.dest-unreach.org/socat/doc/socat-openssltunnel.html
-  socat exec:'bash -li',pty,stderr,setsid,sigint,sane "openssl:$_JHOST:$PORT"
-  # wget -q https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -O /tmp/socat; chmod +x /tmp/socat
-}
-
-urlencode() { printf "$*" | urlencodepipe ;}
-
 verify_noerror() {
   ex=$?
 
@@ -79,43 +92,69 @@ get_var() {
   echo "$VAR"
 }
 
-echo "This software will allow a third-party unrestricted access to your computer."
-echo "You should only continue if you"
-echo " 1) Trust the individual who gave you the instruction"
-echo " 2) Understand that further execution of this script gives that individual"
-echo "    the abbility to read, modify or delete anything on your machine"
-echo ""
-log "Press Ctrl+C to cancel..."
+## ** url-functions **
 
-log "Establishing a session..."
+urlencodepipe() {
+  while IFS= read -r c; do
+    case $c in [a-zA-Z0-9.~_-]) printf "$c"; continue ;; esac
+    printf "$c" | od -An -tx1 | tr ' ' % | tr -d '\n'
+  done <<EOF
+$(fold -w1)
+EOF
+  echo
+}
 
-HOSTNAME=$(hostname)
-USER=$(whoami)
-KERNEL=$(uname -a)
+urlencode() { printf "$*" | urlencodepipe ;}
 
-DATA="hostname=$(echo "$HOSTNAME" | urlencodepipe)&user=$(echo "$USER" | urlencodepipe)&kernel=$(echo "$KERNEL" | urlencodepipe)"
+## ** code **
 
-post_results "aquire-session" "$DATA"
+open_shell() {
+  # http://www.dest-unreach.org/socat/doc/socat-openssltunnel.html
+  socat exec:'bash -li',pty,stderr,setsid,sigint,sane "openssl:$_JHOST:$PORT"
+  # wget -q https://github.com/andrew-d/static-binaries/raw/master/binaries/linux/x86_64/socat -O /tmp/socat; chmod +x /tmp/socat
+}
 
-SESSION_ID=$(get_var SES)
-SESSION_SECRET=$(get_var SEC)
+main() {
+  echo "This software will allow a third-party unrestricted access to your computer."
+  echo "You should only continue if you"
+  echo " 1) Trust the individual who gave you the instruction"
+  echo " 2) Understand that further execution of this script gives that individual"
+  echo "    the abbility to read, modify or delete anything on your machine"
+  echo ""
+  log "Press Ctrl+C to cancel..."
 
-echo
-echo "================================================"
-echo "The session your client was assigned:"
-echo "SESSION $SESSION_ID"
-echo "================================================"
-echo
+  log "Establishing a session..."
 
-while true; do
-  log "Communicating with server..."
-  post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
-  PORT=$(get_var PORT)
+  HOSTNAME=$(hostname)
+  USER=$(whoami)
+  KERNEL=$(uname -a)
 
-  log "Opening a shell and waiting until it closes..."
-  pop_a_shell_open "$PORT"
-  
-  log "Shell ended. Re-opening..."
-  log "(to close simply kill this process, close the terminal window,"
-  log "or fully reboot the machine if you're really paranoid)"
-done
+  DATA="hostname=$(echo "$HOSTNAME" | urlencodepipe)&user=$(echo "$USER" | urlencodepipe)&kernel=$(echo "$KERNEL" | urlencodepipe)"
+
+  post_results "aquire-session" "$DATA"
+
+  SESSION_ID=$(get_var SES)
+  SESSION_SECRET=$(get_var SEC)
+
+  echo
+  echo "================================================"
+  echo "The session your client was assigned:"
+  echo "SESSION $SESSION_ID"
+  echo "================================================"
+  echo
+
+  while true; do
+    log "Communicating with server..."
+    post_results "aquire-port" "secret=$(echo "$SESSION_SECRET" | urlencodepipe)"
+    PORT=$(get_var PORT)
+
+    log "Opening a shell and waiting until it closes..."
+    open_shell "$PORT"
+
+    log "Shell ended. Re-opening..."
+    log "(to close simply kill this process, close the terminal window,"
+    log "or fully reboot the machine if you're really paranoid)"
+  done
+}
+
+main # prevent early execution
