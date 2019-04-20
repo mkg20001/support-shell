@@ -25,11 +25,9 @@ const generateTLSOptions = ({tls: {cert, key}}) => {
 }
 
 const getRealIP = (request) => {
-  return request.headers['x-real-ip'] ||
-    request.headers['x-forwarded-for'] ||
-    request.connection.remoteAddress ||
-    request.socket.remoteAddress ||
-    request.connection.socket.remoteAddress
+  const xFF = request.headers['x-forwarded-for']
+  const xRIP = request.headers['x-real-ip']
+  return xRIP || (xFF ? xFF.split(',')[0] : request.info.remoteAddress)
 }
 
 const init = async (config) => {
@@ -89,6 +87,7 @@ const init = async (config) => {
           request.payload.ip = getRealIP(request)
           return shashon.convert(router.addSession(request.payload))
         } catch (e) {
+          log.error(e)
           return 'ERR_INTERNAL'
         }
       }
@@ -108,6 +107,7 @@ const init = async (config) => {
         try {
           return shashon.convert(await router.aquirePort(request.payload.secret))
         } catch (e) {
+          log.error(e)
           return 'ERR_INTERNAL'
         }
       }
