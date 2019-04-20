@@ -125,6 +125,27 @@ const init = async (config) => {
     }
   })
 
+  server.route({
+    method: 'POST',
+    path: '/_/client/connect',
+    config: {
+      // auth: {}, // TODO: add
+      validate: {
+        payload: {
+          clientid: Joi.string().required()
+        }
+      },
+      handler: async (request, h) => {
+        try {
+          return shashon.convert(await router.aquireSocket(request.payload.clientid))
+        } catch (e) {
+          log.error(e)
+          return 'ERR_INTERNAL'
+        }
+      }
+    }
+  })
+
   await server.start()
 }
 

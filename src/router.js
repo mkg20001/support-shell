@@ -29,16 +29,18 @@ function Server (tlsOptions) { // TODO: cleanup dangling sockets
     let _resolve = resolve
     let _reject = reject
 
-    const socket = new Promise((resolve, reject) => {
-      const server = tls.createServer(tlsOptions, (socket) => {
-        socket.setEncoding('utf8')
-        resolve(socket)
-        server.close(() => {})
-      })
-      server.once('error', _reject)
+    const _socket = new Promise((resolve, reject) => {
+      process.nextTick(() => { // resolve chaos and restabilize universe. jk, just make it so the promise is defined before returning
+        const server = tls.createServer(tlsOptions, (socket) => {
+          socket.setEncoding('utf8')
+          resolve(socket)
+          server.close(() => {})
+        })
+        server.once('error', _reject)
 
-      server.listen(0, () => {
-        return _resolve({port: server.address().port, socket})
+        server.listen(0, () => {
+          return _resolve({port: server.address().port, socket: _socket})
+        })
       })
     })
   })
@@ -61,7 +63,7 @@ function Router (tlsOptions, bindAddress) {
       }
     },
     getClients: () => {
-      clients.map(cl => {
+      return clients.map(cl => {
         return {id: cl.id(), info: cl.info(), lastSeen: cl.lastSeen()}
       })
     },
@@ -74,6 +76,31 @@ function Router (tlsOptions, bindAddress) {
 
       const {port, socket} = await Server(tlsOptions, bindAddress)
       client.socket = socket
+
+      return {port}
+    },
+    aquireSocket: async (clientId) => {
+      const client = clients.filter(cl => cl.id() === clientId)[0]
+      if (!client) {
+        return {err: 'INVALID_ID'}
+      }
+
+      const clientSocket = client.socket
+
+      if (!clientSocket) {
+        return {err: 'CLIENT_SOCKET_INUSE_OR_DISCONNECTED'}
+      }
+
+      delete client.socket
+      const {port, socket: accessSocket} = await Server(tlsOptions, bindAddress)
+
+      process.nextTick(async () => {
+        const access = await accessSocket
+        const client = await clientSocket
+
+        access.pipe(client)
+        client.pipe(access)
+      })
 
       return {port}
     }
