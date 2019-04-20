@@ -9,6 +9,10 @@ rscreen() {
   echo
   echo "Support-Shell v0.1.0"
   echo
+  if [ ! -z "$1" ]; then
+    echo "== $1 =="
+    echo
+  fi
 }
 
 simple_menu() {
@@ -43,27 +47,33 @@ set_rpc() {
 
 do_rpc() {
   RES=$(curl -s -H "X-Token: $RTOKEN" "https://$RHOST/_/$1")
-  verify_noerror
+  verify_noerror || return $?
   echo "$RES"
 }
 
 do_rpc_post() {
   RES=$(curl -s --data "$2" -H "X-Token: $RTOKEN" "https://$RHOST/_/$1")
-  verify_noerror
+  verify_noerror || return $?
   echo "$RES"
 }
 
 list_servers() {
   while true; do
-    rscreen
+    rscreen "Select Server"
 
     SERVERS=$(dir -w 1 "$SERVDIR")
-    SERVERS=("$SERVERS")
-    simple_menu "${SERVERS[@]}" "+" "quit"
+    SERVERS=($SERVERS)
+    simple_menu "${SERVERS[@]}" "#add" "#del" "#quit"
 
-    if [ "$OUT" == "+" ]; then
+    if [ "$OUT" == "#add" ]; then
       add_server
-    elif [ "$OUT" == "quit" ]; then
+    elif [ "$OUT" == "#del" ]; then
+      rscreen "Select Server -> Delete Server"
+      simple_menu "${SERVERS[@]}" "#back"
+      if [[ "$OUT" != "#back" ]]; then
+        rm -f "$SERVDIR/$OUT"
+      fi
+    elif [ "$OUT" == "#quit" ]; then
       exit 0
     else
       . "$SERVDIR/$OUT"
@@ -75,19 +85,19 @@ list_servers() {
 
 list_clients() {
   while true; do
-    rscreen
+    rscreen "$HOST -> Select Client"
 
     CLIENTS=$(do_rpc clients)
     echo "$CLIENTS" | jq -r '.[] | .id + ": " + .info.user + "@" + .info.hostname + "\n  (" + .info.kernel + ")\n"'
     CLIENT_IDS=$(echo "$CLIENTS" | jq -r '.[] | .id')
     CLIENT_IDS=($CLIENT_IDS) # split into array
-    simple_menu "${CLIENT_IDS[@]}" "refresh" "quit" "back"
+    simple_menu "${CLIENT_IDS[@]}" "#refresh" "#quit" "#back"
 
-    if [ "$OUT" == "quit" ]; then
+    if [ "$OUT" == "#quit" ]; then
       exit 0
-    elif [ "$OUT" == "back" ]; then
+    elif [ "$OUT" == "#back" ]; then
       return 0
-    elif [ "$OUT" == "refresh" ]; then
+    elif [ "$OUT" == "#refresh" ]; then
       true
     else
       connect_client "$OUT"
@@ -100,7 +110,7 @@ get_var() {
   VAR=$(echo "$RES" | grep "$1_" | sed "s|^$1_||g")
   if [ -z "$VAR" ]; then
     log "ERROR: Variable $VAR expected to be in response, yet wasn\'t"
-    exit 2
+    return 2
   fi
   echo "$VAR"
 }
@@ -113,10 +123,16 @@ verify_noerror() {
   fi
 
   ERROR=$(echo "$RES" | grep "ERR_")
+  JERR=$(echo "$RES" | jq -r ".error" 2> /dev/null)
 
   if [ ! -z "$ERROR" ]; then
     log "ERROR: $ERROR" >&2
-    exit 2
+    return 2
+  fi
+
+  if [ ! -z "$JERR" ]; then
+    log "ERROR: $JERR" >&2
+    return 2
   fi
 }
 
@@ -148,6 +164,9 @@ add_server() {
   else
     log "Failed!"
   fi
+
+  log "Press return to go back..."
+  read foo
 }
 
 list_servers

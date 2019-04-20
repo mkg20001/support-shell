@@ -1,9 +1,7 @@
 'use strict'
 
 const crypto = require('crypto')
-const generateID = () => { // must be: UNIQURE, URL-SAFE, PRONOUNCIBLE
-  return 'placeholder-please-add-id-function'
-}
+const generateID = require('human-readable-ids').hri.random
 const tls = require('tls')
 
 function Client (info) {
@@ -20,7 +18,7 @@ function Client (info) {
     id: () => data.id,
     info: () => data.info,
     secret: () => data.secret,
-    matchSecret: (sec) => (data.secret = sec)
+    matchSecret: (sec) => (data.secret === sec)
   }
 }
 

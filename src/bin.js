@@ -9,7 +9,7 @@ module.exports = (init) => {
   const fs = require('fs')
   const path = require('path')
 
-  const confPath = [path.join(process.cwd(), 'config.yaml'), '/etc/support-shell/config.yaml'].filter(p => fs.existsSync(p))[0]
+  const confPath = [process.argv[2], path.join(process.cwd(), 'config.yaml'), '/etc/support-shell/config.yaml'].filter(p => fs.existsSync(p))[0]
 
   if (!confPath) {
     console.error('Please copy config.example.yaml into config.yaml, edit it and then run this script with the config path as first argument')
