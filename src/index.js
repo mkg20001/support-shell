@@ -6,10 +6,6 @@ const Joi = require('joi')
 const pino = require('pino')
 const log = pino({name: 'support-shell'})
 
-const Relish = require('relish')({
-  messages: {}
-})
-
 const Router = require('./router')
 const shashon = require('./shashon')
 
@@ -42,7 +38,7 @@ const init = async (config) => {
 
   config.hapi.routes = {
     validate: {
-      failAction: Relish.failAction
+      failAction: shashon.errorHandler
     }
   }
   config.hapi.tls = tlsOptions
