@@ -1,23 +1,35 @@
 #!/bin/bash
 
-simple_menu() {
-  i=0
-  l=$("$@")
-  for e in "$@"; do
-    i=$(( $i + 1 ))
-    echo "[$i] $e"
-  done
-
-  read -p "> " num
-
-  if [ ! -z "${l[$num]}" ]; then
-    OUT="${l[num]}"
-  else
-    simple_menu "$@"
-  fi
+log() {
+  echo "*** $*"
 }
 
-# socat file:`tty`,raw,echo=0 openssl:$host:$port
+rscreen() {
+  clear
+  echo
+  echo "Support-Shell v0.1.0"
+  echo
+}
+
+simple_menu() {
+  i=-1
+  l=("$@")
+  if [ ! "$MUTE" ]; then
+    for e in "$@"; do
+      i=$(( $i + 1 ))
+      echo "[$i] $e"
+    done
+  fi
+
+  while true; do
+    read -p "> " num
+
+    if [ ! -z "${l[$num]}" ]; then
+      OUT="${l[num]}"
+      return 0
+    fi
+  done
+}
 
 CONFDIR="$HOME/.config/support-shell"
 SERVDIR="$CONFDIR/servers"
@@ -25,25 +37,117 @@ SERVDIR="$CONFDIR/servers"
 mkdir -p "$SERVDIR"
 
 set_rpc() {
-  HOST="$1"
-  TOKEN="$2"
+  RHOST="$1"
+  RTOKEN="$2"
 }
 
 do_rpc() {
-  curl -H "X-Token: $TOKEN" "https://$HOST/_/$1"
+  RES=$(curl -s -H "X-Token: $RTOKEN" "https://$RHOST/_/$1")
+  verify_noerror
+  echo "$RES"
+}
+
+do_rpc_post() {
+  RES=$(curl -s --data "$2" -H "X-Token: $RTOKEN" "https://$RHOST/_/$1")
+  verify_noerror
+  echo "$RES"
 }
 
 list_servers() {
-  SERVERS=$(dir -w 1 "$SERVDIR")
-  SERVERS=("$SERVERS")
-  simple_menu "${SERVERS[@]}" "+"
+  while true; do
+    rscreen
 
-  if [ "$OUT" == "+" ]; then
-    add_server
+    SERVERS=$(dir -w 1 "$SERVDIR")
+    SERVERS=("$SERVERS")
+    simple_menu "${SERVERS[@]}" "+" "quit"
+
+    if [ "$OUT" == "+" ]; then
+      add_server
+    elif [ "$OUT" == "quit" ]; then
+      exit 0
+    else
+      . "$SERVDIR/$OUT"
+      set_rpc "$HOST:$PORT" "$TOKEN"
+      list_clients
+    fi
+  done
+}
+
+list_clients() {
+  while true; do
+    rscreen
+
+    CLIENTS=$(do_rpc clients)
+    echo "$CLIENTS" | jq -r '.[] | .id + ": " + .info.user + "@" + .info.hostname + "\n  (" + .info.kernel + ")\n"'
+    CLIENT_IDS=$(echo "$CLIENTS" | jq -r '.[] | .id')
+    CLIENT_IDS=($CLIENT_IDS) # split into array
+    simple_menu "${CLIENT_IDS[@]}" "refresh" "quit" "back"
+
+    if [ "$OUT" == "quit" ]; then
+      exit 0
+    elif [ "$OUT" == "back" ]; then
+      return 0
+    elif [ "$OUT" == "refresh" ]; then
+      true
+    else
+      connect_client "$OUT"
+    fi
+
+  done
+}
+
+get_var() {
+  VAR=$(echo "$RES" | grep "$1_" | sed "s|^$1_||g")
+  if [ -z "$VAR" ]; then
+    log "ERROR: Variable $VAR expected to be in response, yet wasn\'t"
+    exit 2
+  fi
+  echo "$VAR"
+}
+
+verify_noerror() {
+  ex=$?
+
+  if [ "$ex" -ne 0 ]; then
+    RES="ERR_TOOL_$ex"
   fi
 
+  ERROR=$(echo "$RES" | grep "ERR_")
+
+  if [ ! -z "$ERROR" ]; then
+    log "ERROR: $ERROR" >&2
+    exit 2
+  fi
+}
+
+connect_client() {
+  rscreen
+
+  (
+    log "Connecting to $1..."
+    do_rpc_post client/connect "clientid=$1" > /dev/null
+    CPORT=$(get_var PORT)
+    socat file:`tty`,raw,echo=0 "openssl:$HOST:$CPORT"
+  )
+
+  log "Shell ended. Press return to continue..."
+  read foo
 }
 
 add_server() {
-
+  read -p "Name> " name
+  read -p "Host> " host
+  read -p "Port> " port
+  read -p "Token> " token
+  set_rpc "$host:$port" "$token"
+  log "Trying to connect..."
+  if do_rpc clients 2> /dev/null > /dev/null; then
+    log "Success!"
+    log "Saving server '$name'!"
+    echo -e "HOST='$host'\nPORT='$port'\nTOKEN='$token'\n" > "$SERVDIR/$name"
+  else
+    log "Failed!"
+  fi
 }
+
+list_servers
