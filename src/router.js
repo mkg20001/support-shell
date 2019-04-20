@@ -62,7 +62,7 @@ function Router (tlsOptions, bindAddress) {
     },
     getClients: () => {
       return clients.map(cl => {
-        return {id: cl.id(), info: cl.info(), lastSeen: cl.lastSeen()}
+        return {id: cl.id(), info: cl.info(), lastSeen: cl.lastSeen(), isAvailable: Boolean(cl.socket)}
       })
     },
     aquirePort: async (secret) => {
