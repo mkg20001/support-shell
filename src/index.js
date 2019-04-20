@@ -8,6 +8,7 @@ const log = pino({name: 'support-shell'})
 
 const Router = require('./router')
 const shashon = require('./shashon')
+const scheme = require('./auth')
 
 const fs = require('fs')
 const path = require('path')
@@ -60,6 +61,9 @@ const init = async (config) => {
   await server.register({
     plugin: require('inert')
   })
+
+  await server.auth.scheme('tokenAuth', scheme)
+  await server.auth.strategy('token', 'tokenAuth', config)
 
   server.route({
     method: 'GET',
@@ -118,7 +122,7 @@ const init = async (config) => {
     method: 'GET',
     path: '/_/clients',
     config: {
-      // auth: {}, // TODO: add
+      auth: 'token',
       handler: async (request, h) => {
         return router.getClients()
       }
@@ -129,7 +133,7 @@ const init = async (config) => {
     method: 'POST',
     path: '/_/client/connect',
     config: {
-      // auth: {}, // TODO: add
+      auth: 'token',
       validate: {
         payload: {
           clientid: Joi.string().required()

@@ -7,3 +7,6 @@ router:
 tls:
   cert: './path-to-your.cert'
   key: './path-to-your.key'
+tokenHash: 'bcrypt'
+tokens:
+  - $2y$12$bGtYgiRZXrCesMbcg4GHhOyTcyWmKTAzKzqgrVmjM3a/AGSSWUYHG # supportme
